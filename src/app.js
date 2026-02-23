@@ -8,6 +8,10 @@ import cartRouter from './routes/cartRouter.js';
 import viewsRouter from './routes/viewsRouter.js';
 import __dirname from './utils/constantsUtil.js';
 import websocket from './websocket.js';
+import usersRouter from './routes/users.router.js';
+import sessionsRouter from './routes/sessions.router.js'; 
+import passport from 'passport';
+import { initializePassport } from './config/passport.config.js';
 
 const app = express();
 
@@ -24,10 +28,15 @@ app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 app.use(express.static('public'));
 
+initializePassport();
+app.use(passport.initialize());
+
 //Routers
 app.use('/api/products', productRouter);
 app.use('/api/carts', cartRouter);
 app.use('/', viewsRouter);
+app.use('/api/users', usersRouter);
+app.use('/api/sessions', sessionsRouter);
 
 const PORT = 8080;
 const httpServer = app.listen(PORT, () => {
