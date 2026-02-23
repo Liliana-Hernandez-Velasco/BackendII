@@ -1,73 +1,61 @@
-import crypto from 'crypto';
+import CustomError from '../utils/customError.js';
 
 class CartService {
-
-  constructor(cartRepository, productRepository, ticketService) {
+  constructor(cartRepository, productRepository, ticketRepository) {
     this.cartRepository = cartRepository;
     this.productRepository = productRepository;
-    this.ticketService = ticketService;
+    this.ticketRepository = ticketRepository;
   }
 
-  addProductToCart = async (cid, pid) => {
+  async purchaseCart(cid, userEmail) {
 
     const cart = await this.cartRepository.getCartById(cid);
 
-    const product = await this.productRepository.getProductById(pid);
+    if (!cart) throw new CustomError("Cart not found", 404);
 
-    if (!product) throw new Error("Product not found");
+    let totalAmount = 0;
+    const notProcessed = [];
+    const remainingProducts = [];
 
-    const existing = cart.products.find(
-      p => p.product._id.toString() === pid
-    );
+    for (const item of cart.products) {
 
-    if (existing) {
-      existing.quantity += 1;
-    } else {
-      cart.products.push({ product: pid, quantity: 1 });
-    }
-
-    return this.cartRepository.saveCart(cart);
-  };
-
-  purchaseCart = async (cid, userEmail) => {
-
-    const cart = await this.cartRepository.getCartById(cid);
-
-    const purchasable = [];
-    const notPurchasable = [];
-
-    for (let item of cart.products) {
-
-      const product = item.product;
+      const product = await this.productRepository.getProductById(
+        item.product._id
+      );
 
       if (product.stock >= item.quantity) {
 
-        product.stock -= item.quantity;
-        await product.save();
+        // Restar stock
+        await this.productRepository.updateProduct(
+          product._id,
+          { stock: product.stock - item.quantity }
+        );
 
-        purchasable.push(item);
+        totalAmount += product.price * item.quantity;
 
       } else {
-        notPurchasable.push(item);
+        notProcessed.push(item.product._id);
+        remainingProducts.push(item);
       }
     }
 
-    const totalAmount = purchasable.reduce(
-      (acc, item) => acc + item.product.price * item.quantity,
-      0
-    );
+    let ticket = null;
 
-    const ticket = await this.ticketService.createTicket(
-      totalAmount,
-      userEmail
-    );
+    if (totalAmount > 0) {
+      ticket = await this.ticketRepository.createTicket({
+        amount: totalAmount,
+        purchaser: userEmail
+      });
+    }
 
-    cart.products = notPurchasable;
-    await this.cartRepository.saveCart(cart);
+    // Actualizar carrito con productos no procesados
+    await this.cartRepository.updateCart(cid, {
+      products: remainingProducts
+    });
 
     return {
       ticket,
-      notProcessed: notPurchasable.map(p => p.product._id)
+      notProcessed
     };
   }
 }

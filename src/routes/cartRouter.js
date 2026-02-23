@@ -20,4 +20,10 @@ router.post(
     req.cartController.purchaseCart(req, res)
 );
 
+router.post(
+  '/:cid/purchase',
+  passport.authenticate('jwt', { session: false }),
+  authorization(['user']),
+  (req, res) => req.cartController.purchase(req, res)
+);
 export default router;

@@ -1,9 +1,10 @@
-export default class TicketRepository {
+class TicketRepository {
   constructor(dao) {
     this.dao = dao;
   }
 
-  async createTicket(data) {
-    return await this.dao.create(data);
-  }
+  createTicket = (data) =>
+    this.dao.create(data);
 }
+
+export default TicketRepository;

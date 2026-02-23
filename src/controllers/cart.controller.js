@@ -39,4 +39,21 @@ export default class CartController {
       });
     }
   };
+
+  async purchase(req, res, next) {
+  try {
+    const { cid } = req.params;
+    const userEmail = req.user.email;
+
+    const result = await this.cartService.purchaseCart(cid, userEmail);
+
+    res.status(200).json({
+      status: "success",
+      payload: result
+    });
+
+  } catch (error) {
+    next(error);
+  }
+}
 }
