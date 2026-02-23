@@ -1,21 +1,41 @@
 import { Router } from "express";
 import passport from "passport";
 import jwt from "jsonwebtoken";
+import UserDTO from "../dto/user.dto.js";
 
 const router = Router();
 
-router.post("/login",
+// LOGIN
+router.post(
+  "/login",
   passport.authenticate("login", { session: false }),
   (req, res) => {
-    const token = jwt.sign({ user: req.user }, "coderSecret", { expiresIn: "1h" });
-    res.send({ status: "success", access_token: token });
+
+    // Generar token con variable de entorno
+    const token = jwt.sign(
+      { user: req.user },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    res.send({
+      status: "success",
+      access_token: token
+    });
   }
 );
 
-router.get("/current",
+router.get(
+  "/current",
   passport.authenticate("jwt", { session: false }),
   (req, res) => {
-    res.send({ status: "success", user: req.user });
+
+    const user = new UserDTO(req.user);
+
+    res.send({
+      status: "success",
+      user
+    });
   }
 );
 

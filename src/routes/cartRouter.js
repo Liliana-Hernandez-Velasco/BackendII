@@ -1,11 +1,51 @@
 import { Router } from 'express';
 import { productDBManager } from '../dao/productDBManager.js';
 import { cartDBManager } from '../dao/cartDBManager.js';
+import { Router } from 'express';
+import passport from 'passport';
+import TicketService from '../services/ticket.service.js';
 
 const router = Router();
 const ProductService = new productDBManager();
 const CartService = new cartDBManager(ProductService);
+const ticketService = new TicketService();
 
+router.post('/:cid/purchase',
+  passport.authenticate('jwt', { session: false }),
+  async (req, res) => {
+
+    // Integrate your real cart lookup logic here
+    const cart = req.cart; 
+
+    const purchasable = [];
+    const notPurchasable = [];
+
+    for (let item of cart.products) {
+      if (item.product.stock >= item.quantity) {
+        item.product.stock -= item.quantity;
+        purchasable.push(item);
+      } else {
+        notPurchasable.push(item);
+      }
+    }
+
+    const totalAmount = purchasable.reduce(
+      (acc, item) => acc + item.product.price * item.quantity,
+      0
+    );
+
+    const ticket = await ticketService.createTicket(
+      totalAmount,
+      req.user.email
+    );
+
+    res.send({
+      status: 'success',
+      ticket,
+      notProcessed: notPurchasable.map(p => p.product._id)
+    });
+  }
+);
 router.get('/:cid', async (req, res) => {
 
     try {
