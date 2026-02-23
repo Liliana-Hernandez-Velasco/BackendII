@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { productDBManager } from '../dao/productDBManager.js';
 import { cartDBManager } from '../dao/cartDBManager.js';
-import { Router } from 'express';
 import passport from 'passport';
 import TicketService from '../services/ticket.service.js';
 
